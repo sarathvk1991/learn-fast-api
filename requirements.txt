@@ -5,3 +5,4 @@ databases[aiomysql]
 python-dotenv
 pydantic-settings
 rich
+asgi-correlation-id
