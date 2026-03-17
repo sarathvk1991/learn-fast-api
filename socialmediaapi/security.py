@@ -1,7 +1,8 @@
 import datetime
 import logging
+from typing import Annotated
 
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
@@ -72,7 +73,7 @@ async def authenticate_user(email: str, password: str):
     return user
 
 
-async def get_current_user(token: str):
+async def get_current_user(token: Annotated[str, Depends(oauth2scheme)]):
     logger.debug("Decoding access token")
     try:
         payload = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
