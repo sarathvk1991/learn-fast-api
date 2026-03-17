@@ -32,7 +32,9 @@ async def test_create_post(async_client: AsyncClient):
 
     response = await async_client.post("/posts/", json={"body": name})
     assert response.status_code == 201
-    assert {"id": 1, "body": name}.items() <= response.json().items()
+    response_json = response.json()
+    assert response_json["body"] == name
+    assert isinstance(response_json["id"], int)
 
 
 @pytest.mark.anyio
@@ -55,12 +57,12 @@ async def test_create_comment(created_post: dict, async_client: AsyncClient):
     response = await async_client.post(
         "/comments/", json={"body": name, "post_id": created_post["id"]}
     )
+    response_json = response.json()
+
     assert response.status_code == 201
-    assert {
-        "id": 1,
-        "body": name,
-        "post_id": created_post["id"],
-    }.items() <= response.json().items()
+    assert response_json["body"] == name
+    assert response_json["post_id"] == created_post["id"]
+    assert isinstance(response_json["id"], int)
 
 
 @pytest.mark.anyio

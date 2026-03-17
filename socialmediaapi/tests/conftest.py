@@ -5,6 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
+from socialmediaapi.database import user_table
+
 os.environ["ENV_STATE"] = "test"
 
 if os.path.exists("./test.db"):
@@ -36,3 +38,16 @@ async def async_client(client) -> AsyncGenerator:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url=client.base_url) as ac:
         yield ac
+
+
+@pytest.fixture()
+async def registered_user(async_client) -> dict:
+    user_data = {
+        "email": "testuser@example.com",
+        "password": "testpassword",
+    }
+    await async_client.post("/register", json=user_data)
+    query = user_table.select().where(user_table.c.email == user_data["email"])
+    result = await database.fetch_one(query)
+    user_data["id"] = result["id"]
+    return user_data
