@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
-from socialmediaapi.database import user_table
+from socialmediaapi.database import metadata, user_table
 
 os.environ["ENV_STATE"] = "test"
 
@@ -30,6 +30,8 @@ def client() -> Generator:
 async def db() -> AsyncGenerator:
     await database.connect()
     yield
+    for table in reversed(metadata.sorted_tables):
+        await database.execute(f"DELETE FROM {table.name}")
     await database.disconnect()
 
 
