@@ -12,6 +12,7 @@ class BaseConfig(BaseSettings):
 class GlobalConfig(BaseConfig):
     DATABASE_URL: Optional[str] = None
     DB_FORCE_ROLLBACK: bool = False
+    LOGTAIL_TOKEN: Optional[str] = None
 
     # config: ClassVar[BaseConfig] = BaseConfig()
 

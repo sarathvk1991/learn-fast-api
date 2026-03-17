@@ -66,6 +66,13 @@ def configure_logging():
                     "encoding": "utf-8",
                     "filters": ["correlation_id", "email_obfuscation"],
                 },
+                "logtail": {
+                    "class": "logtail.LogtailHandler",
+                    "level": "DEBUG",
+                    "formatter": "console",
+                    "filters": ["correlation_id", "email_obfuscation"],
+                    "source_token": config.LOGTAIL_TOKEN,
+                },
             },
             "loggers": {
                 "uvicorn": {
@@ -74,7 +81,7 @@ def configure_logging():
                 },
                 "socialmediaapi": {
                     "level": "DEBUG" if isinstance(config, DevConfig) else "INFO",
-                    "handlers": ["default", "rotating_file"],
+                    "handlers": ["default", "rotating_file", "logtail"],
                     "propagate": False,
                 },
                 "databases": {
