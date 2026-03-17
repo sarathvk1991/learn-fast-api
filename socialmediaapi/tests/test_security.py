@@ -61,3 +61,17 @@ async def test_get_user(registered_user):
 async def test_get_nonexistent_user():
     user = await security.get_user("nonexistent@example.com")
     assert user is None
+
+
+@pytest.mark.anyio
+async def test_get_current_user(registered_user):
+    access_token = security.create_access_token(registered_user["email"])
+    current_user = await security.get_current_user(access_token)
+    assert current_user is not None
+    assert current_user["email"] == registered_user["email"]
+
+
+@pytest.mark.anyio
+async def test_get_current_user_invalid_token(registered_user):
+    with pytest.raises(security.HTTPException):
+        await security.get_current_user("invalid_token")

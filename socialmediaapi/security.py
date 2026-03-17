@@ -2,7 +2,7 @@ import datetime
 import logging
 
 from fastapi import HTTPException
-from jose import jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
 
 from socialmediaapi.database import database, user_table
@@ -16,7 +16,9 @@ SECRET_KEY = "123jj1o1hihnuhaiugduisahdiuh0kka"
 ALGORITHM = "HS256"
 
 credentials_exception = HTTPException(
-    status_code=401, detail="Could not validate credentials"
+    status_code=401,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
 )
 
 
@@ -64,4 +66,30 @@ async def authenticate_user(email: str, password: str):
         logger.warning("Authentication failed: incorrect password")
         raise credentials_exception
     logger.info("Authentication successful")
+    return user
+
+
+async def get_current_user(token: str):
+    logger.debug("Decoding access token")
+    try:
+        payload = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            logger.warning("Token payload does not contain email")
+            raise credentials_exception
+    except ExpiredSignatureError as e:
+        logger.warning("Token has expired")
+        raise HTTPException(
+            status_code=401,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from e
+    except JWTError as e:
+        logger.warning("Invalid token")
+        raise credentials_exception from e
+    user = await get_user(email)
+    if user is None:
+        logger.warning("User not found for email in token")
+        raise credentials_exception
+    logger.info(f"Current user: {user['email']}")
     return user
