@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from socialmediaapi.database import comment_table, database, post_table
 from socialmediaapi.models.post import (
@@ -10,6 +10,8 @@ from socialmediaapi.models.post import (
     UserPostIn,
     UserPostWithComments,
 )
+from socialmediaapi.models.user import User
+from socialmediaapi.security import get_current_user, oauth2scheme
 
 router = APIRouter()
 
@@ -25,8 +27,9 @@ async def get_posts():
 
 
 @router.post("/posts/", response_model=UserPost, status_code=201)
-async def create_post(post: UserPostIn):
+async def create_post(post: UserPostIn, request: Request):
     logger.info("Creating a new post")
+    current_user: User = await get_current_user(await oauth2scheme(request))
     data = post.model_dump()
     query = post_table.insert().values(**data)
     logger.debug("Query: %s", query)
@@ -35,8 +38,9 @@ async def create_post(post: UserPostIn):
 
 
 @router.post("/comments/", response_model=Comment, status_code=201)
-async def create_comment(comment: CommentIn):
+async def create_comment(comment: CommentIn, request: Request):
     logger.info("Creating a new comment for post_id=%d", comment.post_id)
+    current_user: User = await get_current_user(await oauth2scheme(request))
     await find_post(comment.post_id)
     data = comment.model_dump()
     query = comment_table.insert().values(**data)

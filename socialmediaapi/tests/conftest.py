@@ -53,3 +53,9 @@ async def registered_user(async_client) -> dict:
     result = await database.fetch_one(query)
     user_data["id"] = result["id"]
     return user_data
+
+
+@pytest.fixture()
+async def logged_in_token(async_client, registered_user) -> str:
+    response = await async_client.post("/token", json=registered_user)
+    return response.json()["access_token"]
