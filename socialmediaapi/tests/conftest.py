@@ -1,13 +1,14 @@
 import os
+
+os.environ["ENV_STATE"] = "test"
+
 from typing import AsyncGenerator, Generator
 
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
-from socialmediaapi.database import metadata, user_table
-
-os.environ["ENV_STATE"] = "test"
+from socialmediaapi.database import engine, metadata, user_table
 
 if os.path.exists("./test.db"):
     os.remove("./test.db")
@@ -29,9 +30,17 @@ def client() -> Generator:
 @pytest.fixture(autouse=True)
 async def db() -> AsyncGenerator:
     await database.connect()
+
+    # ✅ CRITICAL FIX: use engine.begin()
+    with engine.begin() as conn:
+        metadata.create_all(bind=conn)
+
     yield
+
+    # ✅ CLEANUP
     for table in reversed(metadata.sorted_tables):
         await database.execute(f"DELETE FROM {table.name}")
+
     await database.disconnect()
 
 

@@ -10,6 +10,12 @@ post_table = sqlalchemy.Table(
     metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column("body", sqlalchemy.String(length=255)),
+    sqlalchemy.Column(
+        "user_id",
+        sqlalchemy.Integer,
+        sqlalchemy.ForeignKey("users.id"),
+        nullable=False,
+    ),
 )
 
 user_table = sqlalchemy.Table(
@@ -28,6 +34,12 @@ comment_table = sqlalchemy.Table(
         "post_id", sqlalchemy.Integer, sqlalchemy.ForeignKey("posts.id"), nullable=False
     ),
     sqlalchemy.Column("body", sqlalchemy.String(length=255)),
+    sqlalchemy.Column(
+        "user_id",
+        sqlalchemy.Integer,
+        sqlalchemy.ForeignKey("users.id"),
+        nullable=False,
+    ),
 )
 
 DATABASE_URL = config.DATABASE_URL
@@ -42,6 +54,6 @@ else:
 
 engine = sqlalchemy.create_engine(SYNC_DATABASE_URL)
 
-metadata.create_all(engine)
+# metadata.create_all(engine)
 
 database = databases.Database(DATABASE_URL, force_rollback=config.DB_FORCE_ROLLBACK)
