@@ -29,7 +29,7 @@ async def test_login_user_not_exists(async_client: AsyncClient):
         "/token", json={"email": "test@example.net", "password": "password"}
     )
     assert response.status_code == 401
-    assert response.json() == {"detail": "Could not validate credentials"}
+    assert response.json() == {"detail": "Authentication failed: user not found"}
 
 
 @pytest.mark.anyio
