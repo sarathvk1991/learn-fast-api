@@ -30,12 +30,26 @@ def access_token_expires_in() -> int:
     return 30
 
 
+def confirm_token_expires_in() -> int:
+    return 1440
+
+
 def create_access_token(email: str):
     logger.debug(f"Creating access token for email: {email}")
     expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
         access_token_expires_in()
     )
-    jwt_payload = {"sub": email, "exp": expire}
+    jwt_payload = {"sub": email, "exp": expire, "type": "access"}
+    encoded_jwt = jwt.encode(jwt_payload, key=SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def create_confirmation_token(email: str):
+    logger.debug(f"Creating confirmation token for email: {email}")
+    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        minutes=confirm_token_expires_in()
+    )
+    jwt_payload = {"sub": email, "exp": expire, "type": "confirmation"}
     encoded_jwt = jwt.encode(jwt_payload, key=SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -80,6 +94,10 @@ async def get_current_user(token: Annotated[str, Depends(oauth2scheme)]):
         email: str = payload.get("sub")
         if email is None:
             logger.warning("Token payload does not contain email")
+            raise credentials_exception
+        type_ = payload.get("type")
+        if type_ is None or type_ != "access":
+            logger.warning("Token is not an access token")
             raise credentials_exception
     except ExpiredSignatureError as e:
         logger.warning("Token has expired")

@@ -11,6 +11,25 @@ async def test_access_token_expires_in():
 
 
 @pytest.mark.anyio
+async def test_confirm_token_expires_in():
+    expires_in = security.confirm_token_expires_in()
+    assert isinstance(expires_in, int)
+    assert expires_in > 0
+
+
+@pytest.mark.anyio
+async def test_create_confirmation_token():
+    email = "test@example.com"
+    confirmation_token = security.create_confirmation_token(email)
+    decoded_token = security.jwt.decode(
+        confirmation_token, security.SECRET_KEY, algorithms=[security.ALGORITHM]
+    )
+    assert decoded_token["sub"] == email
+    assert "exp" in decoded_token
+    assert decoded_token["type"] == "confirmation"
+
+
+@pytest.mark.anyio
 async def test_create_access_token():
     email = "test@example.com"
     access_token = security.create_access_token(email)
@@ -19,6 +38,7 @@ async def test_create_access_token():
     )
     assert decoded_token["sub"] == email
     assert "exp" in decoded_token
+    assert decoded_token["type"] == "access"
 
 
 @pytest.mark.anyio
@@ -75,3 +95,10 @@ async def test_get_current_user(registered_user):
 async def test_get_current_user_invalid_token(registered_user):
     with pytest.raises(security.HTTPException):
         await security.get_current_user("invalid_token")
+
+
+@pytest.mark.anyio
+async def test_get_current_user_wrong_token_type(registered_user):
+    confirmation_token = security.create_confirmation_token(registered_user["email"])
+    with pytest.raises(security.HTTPException):
+        await security.get_current_user(confirmation_token)
