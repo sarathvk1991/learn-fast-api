@@ -80,7 +80,7 @@ async def test_create_post_with_no_body(
 async def test_getall_posts(created_post: dict, async_client: AsyncClient):
     response = await async_client.get("/posts/")
     assert response.status_code == 200
-    assert created_post in response.json()
+    assert created_post["body"] == response.json()[0]["body"]
 
 
 @pytest.mark.anyio
@@ -199,3 +199,64 @@ async def test_get_post_with_comments(
     assert comment["post_id"] == created_comment["post_id"]
     assert comment["user_id"] == created_comment["user_id"]
     assert response_json["post"]["likes"] == 0
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("sorting, expected_order", [("old", [1, 2]), ("new", [2, 1])])
+async def test_get_all_posts_sorted(
+    created_post: dict,
+    async_client: AsyncClient,
+    logged_in_token: str,
+    sorting: str,
+    expected_order: list[int],
+):
+    # Create another post to ensure we have multiple posts
+    await create_post(
+        body="This is another test post",
+        async_client=async_client,
+        logged_in_token=logged_in_token,
+    )
+
+    response = await async_client.get("/posts/", params={"sorting": sorting})
+    assert response.status_code == 200
+    posts = response.json()
+    assert len(posts) >= 2
+    # Check if the posts are sorted by id in the expected order
+    assert posts[0]["id"] == expected_order[0]
+    assert posts[1]["id"] == expected_order[1]
+
+
+@pytest.mark.anyio
+async def test_get_all_posts_sorted_by_likes(
+    created_post: dict, async_client: AsyncClient, logged_in_token: str
+):
+    # Create another post to ensure we have multiple posts
+    another_post = await create_post(
+        body="This is another test post",
+        async_client=async_client,
+        logged_in_token=logged_in_token,
+    )
+
+    # Like the first post twice and the second post once
+    await like_post(
+        post_id=created_post["id"],
+        async_client=async_client,
+        logged_in_token=logged_in_token,
+    )
+    await like_post(
+        post_id=created_post["id"],
+        async_client=async_client,
+        logged_in_token=logged_in_token,
+    )
+    await like_post(
+        post_id=another_post["id"],
+        async_client=async_client,
+        logged_in_token=logged_in_token,
+    )
+
+    response = await async_client.get("/posts/", params={"sorting": "most_likes"})
+    assert response.status_code == 200
+    posts = response.json()
+    assert len(posts) >= 2
+    # Check if the posts are sorted by likes in descending order
+    assert posts[0]["likes"] >= posts[1]["likes"]

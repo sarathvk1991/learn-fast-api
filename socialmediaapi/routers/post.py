@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from typing import Annotated
 
 import sqlalchemy
@@ -13,6 +14,7 @@ from socialmediaapi.models.post import (
     UserPost,
     UserPostIn,
     UserPostWithComments,
+    UserPostWithLikes,
 )
 from socialmediaapi.models.user import User
 from socialmediaapi.security import get_current_user
@@ -33,10 +35,24 @@ select_post_and_likes_query = (
 )
 
 
-@router.get("/posts/", response_model=list[UserPost])
-async def get_posts():
+class PostSortBy(str, Enum):
+    new = "new"
+    old = "old"
+    most_likes = "most_likes"
+
+
+@router.get("/posts/", response_model=list[UserPostWithLikes])
+async def get_posts(sorting: PostSortBy = PostSortBy.new):
     logger.info("Fetching all posts")
-    query = post_table.select()
+    if sorting == PostSortBy.new:
+        query = select_post_and_likes_query.order_by(sqlalchemy.desc(post_table.c.id))
+    elif sorting == PostSortBy.old:
+        query = select_post_and_likes_query.order_by(post_table.c.id.asc())
+    elif sorting == PostSortBy.most_likes:
+        query = select_post_and_likes_query.order_by(sqlalchemy.desc("likes"))
+    else:
+        query = select_post_and_likes_query
+
     logger.debug("Query: %s", query)
     return await database.fetch_all(query)
 
@@ -80,13 +96,11 @@ async def get_comments_for_post(post_id: int):
 @router.get("/posts/{post_id}/", response_model=UserPostWithComments)
 async def get_post_with_comments(post_id: int):
     logger.info("Fetching post with comments for post_id=%d", post_id)
-    # post = await find_post(post_id)
     query = select_post_and_likes_query.where(post_table.c.id == post_id)
     logger.debug("Query: %s", query)
     post = await database.fetch_one(query)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    # comments = await database.fetch_all(query)
     return UserPostWithComments(
         post=post, comments=await get_comments_for_post(post_id)
     )
