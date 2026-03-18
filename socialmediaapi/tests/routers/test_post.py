@@ -22,6 +22,16 @@ async def create_comment(
     return response.json()
 
 
+async def like_post(
+    post_id: int, async_client: AsyncClient, logged_in_token: str
+) -> dict:
+    headers = {"Authorization": f"Bearer {logged_in_token}"}
+    response = await async_client.post(
+        "/likes/", json={"post_id": post_id}, headers=headers
+    )
+    return response.json()
+
+
 @pytest.fixture()
 async def created_post(async_client: AsyncClient, logged_in_token: str) -> dict:
     return await create_post(
@@ -156,3 +166,17 @@ async def test_create_post_expired_token(
         "/posts/", json={"body": "Test post"}, headers=headers
     )
     assert response.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_like_post(
+    created_post: dict, async_client: AsyncClient, logged_in_token: str
+):
+    response = await like_post(
+        post_id=created_post["id"],
+        async_client=async_client,
+        logged_in_token=logged_in_token,
+    )
+    assert response["post_id"] == created_post["id"]
+    assert isinstance(response["id"], int)
+    assert response["user_id"] is not None

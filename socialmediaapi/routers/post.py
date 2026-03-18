@@ -3,10 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from socialmediaapi.database import comment_table, database, post_table
+from socialmediaapi.database import comment_table, database, like_table, post_table
 from socialmediaapi.models.post import (
     Comment,
     CommentIn,
+    PostLike,
+    PostLikeIn,
     UserPost,
     UserPostIn,
     UserPostWithComments,
@@ -81,3 +83,18 @@ async def find_post(post_id: int) -> UserPost:
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     return post
+
+
+@router.post("/likes/", response_model=PostLike, status_code=201)
+async def like_post(
+    like: PostLikeIn, current_user: Annotated[User, Depends(get_current_user)]
+):
+    logger.info("Liking post_id=%d by user_id=%d", like.post_id, current_user.id)
+    post = await find_post(like.post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    data = {**like.model_dump(), "user_id": current_user.id}
+    query = like_table.insert().values(**data)
+    logger.debug("Query: %s", query)
+    like_id = await database.execute(query)
+    return {**data, "id": like_id}
