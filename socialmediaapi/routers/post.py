@@ -1,6 +1,7 @@
 import logging
 from typing import Annotated
 
+import sqlalchemy
 from fastapi import APIRouter, Depends, HTTPException
 
 from socialmediaapi.database import comment_table, database, like_table, post_table
@@ -19,6 +20,17 @@ from socialmediaapi.security import get_current_user
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
+
+select_post_and_likes_query = (
+    sqlalchemy.select(
+        post_table,
+        sqlalchemy.func.count(like_table.c.id).label("likes"),
+    )
+    .select_from(
+        post_table.outerjoin(like_table, post_table.c.id == like_table.c.post_id)
+    )
+    .group_by(post_table.c.id)
+)
 
 
 @router.get("/posts/", response_model=list[UserPost])
@@ -68,11 +80,16 @@ async def get_comments_for_post(post_id: int):
 @router.get("/posts/{post_id}/", response_model=UserPostWithComments)
 async def get_post_with_comments(post_id: int):
     logger.info("Fetching post with comments for post_id=%d", post_id)
-    post = await find_post(post_id)
-    query = comment_table.select().where(comment_table.c.post_id == post_id)
+    # post = await find_post(post_id)
+    query = select_post_and_likes_query.where(post_table.c.id == post_id)
     logger.debug("Query: %s", query)
-    comments = await database.fetch_all(query)
-    return UserPostWithComments(post=post, comments=comments)
+    post = await database.fetch_one(query)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    # comments = await database.fetch_all(query)
+    return UserPostWithComments(
+        post=post, comments=await get_comments_for_post(post_id)
+    )
 
 
 async def find_post(post_id: int) -> UserPost:

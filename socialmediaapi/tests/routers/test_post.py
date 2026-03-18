@@ -180,3 +180,22 @@ async def test_like_post(
     assert response["post_id"] == created_post["id"]
     assert isinstance(response["id"], int)
     assert response["user_id"] is not None
+
+
+@pytest.mark.anyio
+async def test_get_post_with_comments(
+    created_comment: dict, async_client: AsyncClient, created_post: dict
+):
+    response = await async_client.get(f"/posts/{created_post['id']}/")
+    assert response.status_code == 200
+    response_json = response.json()
+    assert response_json["post"]["id"] == created_post["id"]
+    assert response_json["post"]["body"] == created_post["body"]
+    assert response_json["post"]["user_id"] == created_post["user_id"]
+    assert len(response_json["comments"]) == 1
+    comment = response_json["comments"][0]
+    assert comment["id"] == created_comment["id"]
+    assert comment["body"] == created_comment["body"]
+    assert comment["post_id"] == created_comment["post_id"]
+    assert comment["user_id"] == created_comment["user_id"]
+    assert response_json["post"]["likes"] == 0
