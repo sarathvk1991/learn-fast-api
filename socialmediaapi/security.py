@@ -108,6 +108,9 @@ async def authenticate_user(email: str, password: str):
     if not verify_password(password, user.password):
         logger.warning("Authentication failed: incorrect password")
         raise create_credentials_exception("Authentication failed: incorrect password")
+    if not user.confirmed:
+        logger.warning("Authentication failed: email not confirmed")
+        raise create_credentials_exception("Authentication failed: email not confirmed")
     logger.info("Authentication successful")
     return user
 

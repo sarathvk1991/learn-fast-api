@@ -59,12 +59,12 @@ async def test_create_access_token():
 
 
 @pytest.mark.anyio
-async def test_authenticate_user(registered_user):
+async def test_authenticate_user(confirmed_user):
     user = await security.authenticate_user(
-        registered_user["email"], registered_user["password"]
+        confirmed_user["email"], confirmed_user["password"]
     )
     assert user is not None
-    assert user["email"] == registered_user["email"]
+    assert user["email"] == confirmed_user["email"]
 
 
 @pytest.mark.anyio

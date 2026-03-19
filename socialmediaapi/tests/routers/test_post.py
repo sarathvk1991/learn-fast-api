@@ -55,7 +55,7 @@ async def created_comment(
 
 @pytest.mark.anyio
 async def test_create_post(
-    async_client: AsyncClient, registered_user: dict, logged_in_token: str
+    async_client: AsyncClient, confirmed_user: dict, logged_in_token: str
 ):
     name = "This is a test post"
     headers = {"Authorization": f"Bearer {logged_in_token}"}
@@ -64,7 +64,7 @@ async def test_create_post(
     response_json = response.json()
     assert response_json["body"] == name
     assert isinstance(response_json["id"], int)
-    assert response_json["user_id"] == registered_user["id"]
+    assert response_json["user_id"] == confirmed_user["id"]
 
 
 @pytest.mark.anyio
@@ -87,7 +87,7 @@ async def test_getall_posts(created_post: dict, async_client: AsyncClient):
 async def test_create_comment(
     created_post: dict,
     async_client: AsyncClient,
-    registered_user: dict,
+    confirmed_user: dict,
     logged_in_token: str,
 ):
     name = "This is a test comment"
@@ -103,7 +103,7 @@ async def test_create_comment(
     assert response.status_code == 201
     assert response_json["body"] == name
     assert response_json["post_id"] == created_post["id"]
-    assert response_json["user_id"] == registered_user["id"]
+    assert response_json["user_id"] == confirmed_user["id"]
     assert isinstance(response_json["id"], int)
 
 
@@ -155,12 +155,11 @@ async def test_get_comments_by_post_id_with_invalid_post_id(async_client: AsyncC
 
 @pytest.mark.anyio
 async def test_create_post_expired_token(
-    async_client: AsyncClient, registered_user, mocker
+    async_client: AsyncClient, confirmed_user: dict, mocker
 ):
     # Create a token that expires immediately
     mocker.patch("socialmediaapi.security.access_token_expires_in", return_value=-1)
-    expired_token = security.create_access_token(registered_user["email"])
-
+    expired_token = security.create_access_token(confirmed_user["email"])
     headers = {"Authorization": f"Bearer {expired_token}"}
     response = await async_client.post(
         "/posts/", json={"body": "Test post"}, headers=headers
