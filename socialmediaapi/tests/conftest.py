@@ -3,10 +3,11 @@ import os
 os.environ["ENV_STATE"] = "test"
 
 from typing import AsyncGenerator, Generator
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Response
 
 from socialmediaapi.database import engine, metadata, user_table
 
@@ -80,3 +81,17 @@ async def confirmed_user(async_client, registered_user) -> dict:
     )
     await database.execute(query)
     return registered_user
+
+
+@pytest.fixture(autouse=True)
+async def mock_httpx_client(mocker):
+    mocked_client = mocker.patch("socialmediaapi.tasks.httpx.AsyncClient")
+    mocked_async_client = Mock()
+    response = Response(
+        status_code=200,
+        content=b"Email sent successfully",
+        request=("POST", "//"),
+    )
+    mocked_async_client.post = AsyncMock(return_value=response)
+    mocked_client.return_value.__aenter__.return_value = mocked_async_client
+    return mocked_async_client
