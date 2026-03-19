@@ -16,3 +16,4 @@ aiofiles
 b2sdk
 httpx
 sentry-sdk[fastapi]
+aiosqlite
