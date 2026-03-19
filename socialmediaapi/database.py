@@ -1,3 +1,5 @@
+import ssl
+
 import databases
 import sqlalchemy
 
@@ -74,3 +76,14 @@ engine = sqlalchemy.create_engine(SYNC_DATABASE_URL)
 # metadata.create_all(engine)
 
 database = databases.Database(DATABASE_URL, force_rollback=config.DB_FORCE_ROLLBACK)
+
+ssl_context = None
+
+if DATABASE_URL.startswith("mysql+aiomysql"):
+    ssl_context = ssl.create_default_context()
+
+database = databases.Database(
+    DATABASE_URL,
+    force_rollback=config.DB_FORCE_ROLLBACK,
+    ssl=ssl_context,  # ✅ THIS IS THE FIX
+)
