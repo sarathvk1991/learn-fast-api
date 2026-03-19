@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
 import socialmediaapi.tasks as tasks
 from socialmediaapi.database import database, user_table
@@ -19,7 +19,9 @@ router = APIRouter()
 
 
 @router.post("/register", status_code=201)
-async def register_user(user: UserIn, request: Request):
+async def register_user(
+    user: UserIn, request: Request, background_tasks: BackgroundTasks
+):
     if await get_user(user.email):
         raise HTTPException(
             status_code=400, detail="A user with this email already exists"
@@ -28,7 +30,8 @@ async def register_user(user: UserIn, request: Request):
     query = user_table.insert().values(email=user.email, password=hashed_password)
     logger.debug(f"Executing query: {query}")
     await database.execute(query)
-    await tasks.send_welcome_email(
+    background_tasks.add_task(
+        tasks.send_welcome_email,
         user.email,
         confirmation_link=request.url_for(
             "confirm_user", token=create_confirmation_token(user.email)

@@ -1,7 +1,6 @@
 import pytest
+from fastapi import BackgroundTasks
 from httpx import AsyncClient
-
-from socialmediaapi import tasks
 
 
 async def register_user(async_client: AsyncClient, email: str, password: str):
@@ -50,7 +49,7 @@ async def test_login_user_success(async_client: AsyncClient, confirmed_user: dic
 
 @pytest.mark.anyio
 async def test_confirm_user_success(async_client: AsyncClient, mocker):
-    spy = mocker.spy(tasks, "send_welcome_email")
+    spy = mocker.spy(BackgroundTasks, "add_task")
     # First, register the user to get the confirmation token
     await register_user(async_client, "test@example.com", "password")
     confirmation_url = str(spy.call_args[1]["confirmation_link"])
@@ -70,7 +69,7 @@ async def test_confirm_user_expired_token(async_client: AsyncClient, mocker):
     mocker.patch(
         "socialmediaapi.security.confirm_token_expires_in", return_value=-1
     )  # Set token to expire immediately
-    spy = mocker.spy(tasks, "send_welcome_email")
+    spy = mocker.spy(BackgroundTasks, "add_task")
     # First, register the user to get the confirmation token
     await register_user(async_client, "test@example.com", "password")
     confirmation_url = str(spy.call_args[1]["confirmation_link"])
