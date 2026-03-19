@@ -5,7 +5,7 @@ async def create_post(
     body: str, async_client: AsyncClient, logged_in_token: str
 ) -> dict:
     headers = {"Authorization": f"Bearer {logged_in_token}"}
-    response = await async_client.post("/posts/", json={"body": body}, headers=headers)
+    response = await async_client.post("/posts", json={"body": body}, headers=headers)
     return response.json()
 
 

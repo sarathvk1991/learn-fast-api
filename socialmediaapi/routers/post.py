@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Annotated
 
 import sqlalchemy
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
 from socialmediaapi.database import comment_table, database, like_table, post_table
 from socialmediaapi.models.post import (
@@ -18,6 +18,7 @@ from socialmediaapi.models.post import (
 )
 from socialmediaapi.models.user import User
 from socialmediaapi.security import get_current_user
+from socialmediaapi.tasks import generate_and_add_to_post
 
 router = APIRouter()
 
@@ -41,7 +42,7 @@ class PostSortBy(str, Enum):
     most_likes = "most_likes"
 
 
-@router.get("/posts/", response_model=list[UserPostWithLikes])
+@router.get("/posts", response_model=list[UserPostWithLikes])
 async def get_posts(sorting: PostSortBy = PostSortBy.new):
     logger.info("Fetching all posts")
     if sorting == PostSortBy.new:
@@ -57,9 +58,13 @@ async def get_posts(sorting: PostSortBy = PostSortBy.new):
     return await database.fetch_all(query)
 
 
-@router.post("/posts/", response_model=UserPost, status_code=201)
+@router.post("/posts", response_model=UserPost, status_code=201)
 async def create_post(
-    post: UserPostIn, current_user: Annotated[User, Depends(get_current_user)]
+    post: UserPostIn,
+    current_user: Annotated[User, Depends(get_current_user)],
+    background_tasks: BackgroundTasks,
+    request: Request,
+    prompt: str = None,
 ):
     logger.info("Creating a new post")
 
@@ -67,6 +72,15 @@ async def create_post(
     query = post_table.insert().values(**data)
     logger.debug("Query: %s", query)
     post_id = await database.execute(query)
+    if prompt:
+        background_tasks.add_task(
+            generate_and_add_to_post,
+            current_user.email,
+            post_id,
+            request.url_for("get_post_with_comments", post_id=post_id),
+            database,
+            prompt,
+        )
     return {**data, "id": post_id}
 
 

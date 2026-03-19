@@ -23,7 +23,7 @@ async def test_create_post(
 ):
     name = "This is a test post"
     headers = {"Authorization": f"Bearer {logged_in_token}"}
-    response = await async_client.post("/posts/", json={"body": name}, headers=headers)
+    response = await async_client.post("/posts", json={"body": name}, headers=headers)
     assert response.status_code == 201
     response_json = response.json()
     assert response_json["body"] == name
@@ -37,13 +37,13 @@ async def test_create_post_with_no_body(
     async_client: AsyncClient, logged_in_token: str
 ):
     headers = {"Authorization": f"Bearer {logged_in_token}"}
-    response = await async_client.post("/posts/", json={}, headers=headers)
+    response = await async_client.post("/posts", json={}, headers=headers)
     assert response.status_code == 422
 
 
 @pytest.mark.anyio
 async def test_getall_posts(created_post: dict, async_client: AsyncClient):
-    response = await async_client.get("/posts/")
+    response = await async_client.get("/posts")
     assert response.status_code == 200
     assert created_post["body"] == response.json()[0]["body"]
 
@@ -127,7 +127,7 @@ async def test_create_post_expired_token(
     expired_token = security.create_access_token(confirmed_user["email"])
     headers = {"Authorization": f"Bearer {expired_token}"}
     response = await async_client.post(
-        "/posts/", json={"body": "Test post"}, headers=headers
+        "/posts", json={"body": "Test post"}, headers=headers
     )
     assert response.status_code == 401
 
@@ -181,7 +181,7 @@ async def test_get_all_posts_sorted(
         logged_in_token=logged_in_token,
     )
 
-    response = await async_client.get("/posts/", params={"sorting": sorting})
+    response = await async_client.get("/posts", params={"sorting": sorting})
     assert response.status_code == 200
     posts = response.json()
     assert len(posts) >= 2
@@ -218,9 +218,35 @@ async def test_get_all_posts_sorted_by_likes(
         logged_in_token=logged_in_token,
     )
 
-    response = await async_client.get("/posts/", params={"sorting": "most_likes"})
+    response = await async_client.get("/posts", params={"sorting": "most_likes"})
     assert response.status_code == 200
     posts = response.json()
     assert len(posts) >= 2
     # Check if the posts are sorted by likes in descending order
     assert posts[0]["likes"] >= posts[1]["likes"]
+
+
+@pytest.fixture()
+def mock_cute_creature_api(mocker):
+    mock_response = {"output_url": "https://example.com/cute-creature.jpg"}
+    return mocker.patch(
+        "socialmediaapi.tasks._generate_cute_creature_api", return_value=mock_response
+    )
+
+
+@pytest.mark.anyio
+async def test_create_post_with_prompt(
+    async_client: AsyncClient,
+    logged_in_token: str,
+    mock_cute_creature_api,
+):
+    body = "This is a test post with a prompt"
+    prompt = "Generate a cute creature"
+    response_json = await async_client.post(
+        f"/posts?prompt={prompt}",
+        json={"body": body},
+        headers={"Authorization": f"Bearer {logged_in_token}"},
+    )
+    assert response_json.status_code == 201
+    assert response_json.json()["image_url"] is None
+    mock_cute_creature_api.assert_called()
