@@ -16,7 +16,7 @@ CHUNK_SIZE = 1024 * 1024  # 1MB
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 async def upload_file(file: UploadFile):
     try:
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile() as temp_file:
             temp_file_path = temp_file.name
             logger.info(f"Saving uploaded file to temporary path: {temp_file_path}")
             async with aiofiles.open(temp_file_path, "wb") as out_file:
