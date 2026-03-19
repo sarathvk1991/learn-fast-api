@@ -24,6 +24,7 @@ user_table = sqlalchemy.Table(
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column("email", sqlalchemy.String(length=255), unique=True),
     sqlalchemy.Column("password", sqlalchemy.String(length=255)),
+    sqlalchemy.Column("confirmed", sqlalchemy.Boolean, default=False),
 )
 
 comment_table = sqlalchemy.Table(

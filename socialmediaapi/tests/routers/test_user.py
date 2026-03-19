@@ -1,4 +1,5 @@
 import pytest
+from fastapi import Request
 from httpx import AsyncClient
 
 
@@ -12,7 +13,7 @@ async def register_user(async_client: AsyncClient, email: str, password: str):
 async def test_register_user_success(async_client: AsyncClient):
     response = await register_user(async_client, "test@example.com", "password")
     assert response.status_code == 201
-    assert response.json() == {"message": "User registered successfully"}
+    assert "User registered successfully" in response.json()["message"]
 
 
 @pytest.mark.anyio
@@ -44,3 +45,36 @@ async def test_login_user_success(async_client: AsyncClient, registered_user: di
     assert response.status_code == 200
     assert "access_token" in response.json()
     assert response.json()["token_type"] == "bearer"
+
+
+@pytest.mark.anyio
+async def test_confirm_user_success(async_client: AsyncClient, mocker):
+    spy = mocker.spy(Request, "url_for")
+    # First, register the user to get the confirmation token
+    await register_user(async_client, "test@example.com", "password")
+    confirmation_url = str(spy.spy_return)
+
+    response = await async_client.get(confirmation_url)
+    assert response.status_code == 200
+    assert response.json() == {"detail": "User confirmed successfully"}
+
+
+@pytest.mark.anyio
+async def test_confirm_user_invalid_token(async_client: AsyncClient):
+    response = await async_client.get("/confirm/invalidtoken")
+    assert response.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_confirm_user_expired_token(async_client: AsyncClient, mocker):
+    mocker.patch(
+        "socialmediaapi.security.confirm_token_expires_in", return_value=-1
+    )  # Set token to expire immediately
+    spy = mocker.spy(Request, "url_for")
+    # First, register the user to get the confirmation token
+    await register_user(async_client, "test@example.com", "password")
+    confirmation_url = str(spy.spy_return)
+
+    response = await async_client.get(confirmation_url)
+    assert response.status_code == 401
+    assert "Token has expired" in response.json()["detail"]
