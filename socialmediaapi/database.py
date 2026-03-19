@@ -16,6 +16,7 @@ post_table = sqlalchemy.Table(
         sqlalchemy.ForeignKey("users.id"),
         nullable=False,
     ),
+    sqlalchemy.Column("image_url", sqlalchemy.String),
 )
 
 user_table = sqlalchemy.Table(

@@ -65,6 +65,7 @@ async def test_create_post(
     assert response_json["body"] == name
     assert isinstance(response_json["id"], int)
     assert response_json["user_id"] == confirmed_user["id"]
+    assert response_json["image_url"] is None
 
 
 @pytest.mark.anyio
