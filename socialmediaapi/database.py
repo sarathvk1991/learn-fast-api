@@ -75,7 +75,7 @@ engine = sqlalchemy.create_engine(SYNC_DATABASE_URL)
 
 # metadata.create_all(engine)
 
-database = databases.Database(DATABASE_URL, force_rollback=config.DB_FORCE_ROLLBACK)
+# database = databases.Database(DATABASE_URL, force_rollback=config.DB_FORCE_ROLLBACK)
 
 ssl_context = None
 
