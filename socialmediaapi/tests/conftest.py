@@ -16,6 +16,7 @@ if os.path.exists("./test.db"):
 
 from socialmediaapi.database import database
 from socialmediaapi.main import app
+from socialmediaapi.tests.helpers import create_post
 
 
 @pytest.fixture(scope="session")
@@ -36,7 +37,7 @@ async def db() -> AsyncGenerator:
     with engine.begin() as conn:
         metadata.create_all(bind=conn)
 
-    yield
+    yield database
 
     # ✅ CLEANUP
     for table in reversed(metadata.sorted_tables):
@@ -95,3 +96,12 @@ async def mock_httpx_client(mocker):
     mocked_async_client.post = AsyncMock(return_value=response)
     mocked_client.return_value.__aenter__.return_value = mocked_async_client
     return mocked_async_client
+
+
+@pytest.fixture()
+async def created_post(async_client: AsyncClient, logged_in_token: str) -> dict:
+    return await create_post(
+        body="This is a test post",
+        async_client=async_client,
+        logged_in_token=logged_in_token,
+    )

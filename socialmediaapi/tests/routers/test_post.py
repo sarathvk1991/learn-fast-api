@@ -2,43 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from socialmediaapi import security
-
-
-async def create_post(
-    body: str, async_client: AsyncClient, logged_in_token: str
-) -> dict:
-    headers = {"Authorization": f"Bearer {logged_in_token}"}
-    response = await async_client.post("/posts/", json={"body": body}, headers=headers)
-    return response.json()
-
-
-async def create_comment(
-    body: str, post_id: int, async_client: AsyncClient, logged_in_token: str
-) -> dict:
-    headers = {"Authorization": f"Bearer {logged_in_token}"}
-    response = await async_client.post(
-        "/comments/", json={"body": body, "post_id": post_id}, headers=headers
-    )
-    return response.json()
-
-
-async def like_post(
-    post_id: int, async_client: AsyncClient, logged_in_token: str
-) -> dict:
-    headers = {"Authorization": f"Bearer {logged_in_token}"}
-    response = await async_client.post(
-        "/likes/", json={"post_id": post_id}, headers=headers
-    )
-    return response.json()
-
-
-@pytest.fixture()
-async def created_post(async_client: AsyncClient, logged_in_token: str) -> dict:
-    return await create_post(
-        body="This is a test post",
-        async_client=async_client,
-        logged_in_token=logged_in_token,
-    )
+from socialmediaapi.tests.helpers import create_comment, create_post, like_post
 
 
 @pytest.fixture()
