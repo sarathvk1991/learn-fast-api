@@ -15,6 +15,9 @@ class GlobalConfig(BaseConfig):
     LOGTAIL_TOKEN: Optional[str] = None
     MAILGUN_API_KEY: Optional[str] = None
     MAILGUN_DOMAIN: Optional[str] = None
+    B2_KEY_ID: Optional[str] = None
+    B2_APPLICATION_KEY: Optional[str] = None
+    B2_BUCKET_NAME: Optional[str] = None
 
     # config: ClassVar[BaseConfig] = BaseConfig()
 
