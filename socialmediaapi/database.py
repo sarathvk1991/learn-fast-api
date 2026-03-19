@@ -83,10 +83,10 @@ db_kwargs = {
     "force_rollback": config.DB_FORCE_ROLLBACK,
 }
 
-# ✅ Only apply SSL for MySQL (prod)
 if DATABASE_URL.startswith("mysql+aiomysql") and config.ENV_STATE == "prod":
     ssl_context = ssl.create_default_context()
-    db_kwargs["ssl"] = ssl_context
+
+    db_kwargs["ssl"] = {"ssl": ssl_context}
 
 database = databases.Database(
     DATABASE_URL,
