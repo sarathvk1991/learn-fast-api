@@ -42,9 +42,3 @@ app.include_router(upload_router)
 async def http_exception_handler_logging(request, exc: HTTPException):
     logger.error(f"HTTPException: {exc.status_code} - {exc.detail}")
     return await http_exception_handler(request, exc)
-
-
-@app.get("/sentry-debug")
-async def trigger_error():
-    division_by_zero = 1 / 0
-    return {"result": division_by_zero}
